@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Donation Receipts — Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f4f8;
+      color: #1a202c;
+      min-height: 100vh;
+    }
+    header {
+      background: #fff;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.25rem; font-weight: 700; }
+    header a { color: #718096; font-size: 0.875rem; text-decoration: none; }
+    header a:hover { color: #4f46e5; }
+
+    main { max-width: 800px; margin: 2.5rem auto; padding: 0 1rem; }
+
+    .step {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      margin-bottom: 1.5rem;
+      overflow: hidden;
+    }
+    .step-header {
+      display: flex;
+      align-items: center;
+      padding: 1.1rem 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+      gap: 0.75rem;
+    }
+    .step-number {
+      width: 2rem; height: 2rem;
+      background: #4f46e5; color: #fff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+    .step-number.done { background: #38a169; }
+    .step-header h2 { font-size: 1.05rem; font-weight: 600; }
+    .step-body { padding: 1.5rem; }
+
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .badge-green { background: #c6f6d5; color: #276749; }
+    .badge-red   { background: #fed7d7; color: #9b2c2c; }
+    .badge-gray  { background: #e2e8f0; color: #4a5568; }
+
+    label { display: block; font-size: 0.875rem; font-weight: 500; color: #4a5568; margin-bottom: 0.4rem; }
+    input[type=number], input[type=text] {
+      width: 100%; padding: 0.6rem 0.85rem;
+      border: 1px solid #cbd5e0; border-radius: 8px;
+      font-size: 0.95rem; margin-bottom: 1rem;
+      outline: none; transition: border-color 0.2s;
+    }
+    input:focus { border-color: #4f46e5; }
+    small { color: #718096; font-size: 0.8rem; }
+
+    .btn {
+      display: inline-block;
+      padding: 0.65rem 1.25rem;
+      border: none; border-radius: 8px;
+      font-size: 0.95rem; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    .btn-primary   { background: #4f46e5; color: #fff; }
+    .btn-primary:hover { background: #4338ca; }
+    .btn-success   { background: #38a169; color: #fff; }
+    .btn-success:hover { background: #2f855a; }
+    .btn-danger    { background: #e53e3e; color: #fff; }
+    .btn-danger:hover { background: #c53030; }
+    .btn-outline   { background: #fff; color: #4a5568; border: 1px solid #cbd5e0; }
+    .btn-outline:hover { background: #f7fafc; }
+    .btn:disabled  { opacity: 0.5; cursor: not-allowed; }
+
+    .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+
+    /* Donor table */
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th { text-align: left; color: #718096; font-weight: 600; padding: 0.5rem 0.75rem; border-bottom: 2px solid #e2e8f0; }
+    td { padding: 0.6rem 0.75rem; border-bottom: 1px solid #f0f4f8; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #f7fafc; }
+
+    #send-status { margin-top: 1rem; }
+    .result-row { font-size: 0.85rem; padding: 0.3rem 0; }
+    .result-row.sent   { color: #276749; }
+    .result-row.error  { color: #9b2c2c; }
+    .result-row.skipped{ color: #744210; }
+
+    .spinner {
+      display: inline-block;
+      width: 1rem; height: 1rem;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 0.4rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Donation Receipts</h1>
+    <a href="/logout">Log out</a>
+  </header>
+
+  <main>
+
+    <!-- ── Step 1: Connect Xero ───────────────────────────────────────────── -->
+    <div class="step" id="step1">
+      <div class="step-header">
+        <div class="step-number {% if xero_connected %}done{% endif %}">1</div>
+        <h2>Connect to Xero</h2>
+        <span style="margin-left:auto">
+          {% if xero_connected %}
+            <span class="badge badge-green">Connected</span>
+          {% else %}
+            <span class="badge badge-red">Not connected</span>
+          {% endif %}
+        </span>
+      </div>
+      <div class="step-body">
+        {% if xero_connected %}
+          <p style="margin-bottom:1rem; color:#4a5568;">
+            Xero is connected. You can now pull donation data below.
+          </p>
+          <a href="/auth/disconnect" class="btn btn-outline">Disconnect Xero</a>
+        {% else %}
+          <p style="margin-bottom:1rem; color:#4a5568;">
+            Authorise this app to read your Xero accounting data.
+            You'll be redirected to Xero's login page.
+          </p>
+          <a href="/auth/xero" class="btn btn-primary">Connect Xero</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ── Step 2: Pull Donations ─────────────────────────────────────────── -->
+    <div class="step" id="step2">
+      <div class="step-header">
+        <div class="step-number {% if donations %}done{% endif %}">2</div>
+        <h2>Pull Donation Data</h2>
+        {% if donations %}
+          <span style="margin-left:auto">
+            <span class="badge badge-green">{{ donation_count }} donor{% if donation_count != 1 %}s{% endif %} loaded</span>
+          </span>
+        {% endif %}
+      </div>
+      <div class="step-body">
+        <form method="post" action="/donations/fetch">
+          <div class="row">
+            <div style="flex:0 0 140px;">
+              <label for="year">Financial year</label>
+              <input type="number" id="year" name="year"
+                     value="{{ request.session.get('donation_year', '') or (now().year - 1) }}"
+                     min="2000" max="2099" required>
+            </div>
+            <div style="flex:1; min-width:200px;">
+              <label for="account_codes">Donation account codes</label>
+              <input type="text" id="account_codes" name="account_codes"
+                     placeholder="e.g. 800, 801, 850"
+                     value="{{ request.session.get('account_codes', [])|join(', ') }}"
+                     required>
+              <small>Comma-separated Xero account codes that represent donation income.</small>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" {% if not xero_connected %}disabled{% endif %}>
+            Pull donations
+          </button>
+          {% if not xero_connected %}
+            <small style="margin-left:0.75rem; color:#9b2c2c;">Connect Xero first.</small>
+          {% endif %}
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Step 3: Review & Send ──────────────────────────────────────────── -->
+    <div class="step" id="step3">
+      <div class="step-header">
+        <div class="step-number">3</div>
+        <h2>Review &amp; Send Receipts</h2>
+      </div>
+      <div class="step-body">
+        {% if not donations %}
+          <p style="color:#718096;">No donor data loaded yet. Complete step 2 first.</p>
+        {% else %}
+          <p style="margin-bottom:1rem; color:#4a5568;">
+            {{ donation_count }} donor{% if donation_count != 1 %}s{% endif %} found.
+            Review below, then click <strong>Send all receipts</strong> to email PDFs.
+          </p>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Donor</th>
+                <th>Email</th>
+                <th style="text-align:right">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for d in donations %}
+              <tr>
+                <td>{{ d.name }}</td>
+                <td>
+                  {% if d.email %}
+                    {{ d.email }}
+                  {% else %}
+                    <span class="badge badge-gray">No email</span>
+                  {% endif %}
+                </td>
+                <td style="text-align:right; font-variant-numeric: tabular-nums;">
+                  ${{ "%.2f"|format(d.total) }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+
+          <div style="margin-top:1.5rem;">
+            <button id="send-btn" class="btn btn-success" onclick="sendAll()">
+              Send all receipts
+            </button>
+          </div>
+
+          <div id="send-status"></div>
+        {% endif %}
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    async function sendAll() {
+      const btn = document.getElementById('send-btn');
+      const status = document.getElementById('send-status');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>Sending…';
+      status.innerHTML = '';
+
+      try {
+        const resp = await fetch('/receipts/send', { method: 'POST' });
+        const data = await resp.json();
+        const results = data.results || [];
+        let html = '<p style="margin-bottom:0.5rem; font-weight:600;">Results:</p>';
+        for (const r of results) {
+          let cls = r.status;
+          let msg = '';
+          if (r.status === 'sent')    msg = `✓ ${r.name} — sent to ${r.email}`;
+          if (r.status === 'skipped') msg = `— ${r.name} — skipped (${r.reason})`;
+          if (r.status === 'error')   msg = `✗ ${r.name} — error: ${r.reason}`;
+          html += `<div class="result-row ${cls}">${msg}</div>`;
+        }
+        status.innerHTML = html;
+      } catch (e) {
+        status.innerHTML = `<p style="color:#9b2c2c;">Request failed: ${e.message}</p>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Send all receipts';
+      }
+    }
+  </script>
+</body>
+</html>
