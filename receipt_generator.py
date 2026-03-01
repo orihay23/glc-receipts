@@ -5,7 +5,6 @@ Generate a PDF donation receipt from donor data using WeasyPrint.
 import os
 from datetime import datetime
 from jinja2 import Environment, FileSystemLoader
-from weasyprint import HTML, CSS
 
 
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
@@ -38,5 +37,6 @@ def generate_receipt_pdf(donor: dict, year: int) -> bytes:
     }
 
     html_content = template.render(**context)
+    from weasyprint import HTML
     pdf_bytes = HTML(string=html_content, base_url=TEMPLATES_DIR).write_pdf()
     return pdf_bytes

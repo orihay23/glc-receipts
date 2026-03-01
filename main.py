@@ -81,6 +81,7 @@ async def dashboard(request: Request):
             "xero_connected": xero_connected,
             "donations": donations,
             "donation_count": len(donations),
+            "current_year": datetime.now().year,
         },
     )
 
