@@ -2,6 +2,7 @@ services:
   - type: web
     name: donation-receipts
     runtime: docker
+    healthCheckPath: /health
     plan: free
     envVars:
       - key: DASHBOARD_PASSWORD
